@@ -19,10 +19,10 @@ import traceback
 import shutil
 from typing import Optional
 
-from app.agents import generate_docstring
-from app.readme_agent import generate_project_readme, ProjectAnalyzer, save_readme
-from app.models import DocstringRequest, DocstringResponse, HealthResponse
-from app.config import settings, get_settings
+from src.agents import generate_docstring
+from src.readme_agent import generate_project_readme, ProjectAnalyzer, save_readme
+from src.models import DocstringRequest, DocstringResponse, HealthResponse
+from src.config import settings, get_settings
 
 # ============ Path Setup ============
 BASE_DIR = Path(__file__).parent

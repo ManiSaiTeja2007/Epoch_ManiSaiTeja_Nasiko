@@ -15,7 +15,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.language_models import BaseLLM
 
-from app.config import get_llm, settings
+from src.config import get_llm, settings
 
 
 # ============ Custom Exceptions ============

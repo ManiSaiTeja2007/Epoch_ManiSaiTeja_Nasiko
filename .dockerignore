@@ -1,0 +1,51 @@
+# .dockerignore
+# Version control
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.mypy_cache
+.ruff_cache
+.venv
+venv
+env
+ENV
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Docker
+Dockerfile
+Dockerfile.dev
+docker-compose*.yml
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+logs
+*.log
+
+# Cache
+.cache
+
+# Project specific
+README.md
+LICENSE
+tests
+examples
