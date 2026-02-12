@@ -11,7 +11,7 @@ services:
       - "8000:8000"
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
+      - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash}
       - TEMPERATURE=${TEMPERATURE:-0.1}
       - MAX_TOKENS_DOCSTRING=${MAX_TOKENS_DOCSTRING:-800}
       - MAX_TOKENS_README=${MAX_TOKENS_README:-3000}
