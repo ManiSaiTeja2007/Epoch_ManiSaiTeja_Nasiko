@@ -66,6 +66,8 @@ class DocstringResult:
 
 # ============ Enhanced Validation with AST Analysis ============
 
+# ============ Enhanced Validation with AST Analysis ============
+
 def validate_and_analyze(code: str) -> Tuple[str, ElementType, str, Optional[Dict[str, Any]]]:
     """
     Validates Python code and extracts comprehensive metadata.
@@ -99,23 +101,71 @@ def validate_and_analyze(code: str) -> Tuple[str, ElementType, str, Optional[Dic
     if not parsed.body:
         raise CodeValidationError("No valid Python statements found.")
     
-    # Get the first primary node (we document one thing at a time)
-    node = parsed.body[0]
+    # SCAN THROUGH ALL NODES to find the first class/function definition
+    # Skip imports, assignments, expressions, etc.
+    target_node = None
+    node_type = None
     
-    # Skip if it's just a docstring or expression
-    if isinstance(node, (ast.Expr, ast.Constant)) and not isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-        raise CodeValidationError("No function, class, or method definition found. Found only an expression or docstring.")
+    for node in parsed.body:
+        if isinstance(node, ast.ClassDef):
+            target_node = node
+            node_type = "class"
+            break
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            target_node = node
+            node_type = "function"
+            break
     
+    # If we didn't find a class or function at top level, look inside modules
+    if not target_node:
+        for node in parsed.body:
+            if isinstance(node, ast.Module):
+                for child in node.body:
+                    if isinstance(child, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                        target_node = child
+                        node_type = "class" if isinstance(child, ast.ClassDef) else "function"
+                        break
+            if target_node:
+                break
+    
+    if not target_node:
+        # Get the type of the first node for better error message
+        first_node_type = type(parsed.body[0]).__name__ if parsed.body else "None"
+        raise CodeValidationError(
+            f"No Python function, class, or method definition found. Found: {first_node_type}. "
+            "Please provide a function, class, or method definition."
+        )
+    
+    node = target_node
     metadata = {}
     
     # Class detection
     if isinstance(node, ast.ClassDef):
         # Check for decorators
-        decorators = [d.id if isinstance(d, ast.Name) else None for d in node.decorator_list]
-        metadata["decorators"] = [d for d in decorators if d]
-        metadata["base_classes"] = [base.id if isinstance(base, ast.Name) else type(base).__name__ 
-                                   for base in node.bases]
-        return cleaned, ElementType.CLASS, node.name, metadata
+        decorators = []
+        for d in node.decorator_list:
+            if isinstance(d, ast.Name):
+                decorators.append(d.id)
+            elif isinstance(d, ast.Attribute):
+                decorators.append(d.attr)
+        
+        metadata["decorators"] = decorators
+        metadata["base_classes"] = []
+        for base in node.bases:
+            if isinstance(base, ast.Name):
+                metadata["base_classes"].append(base.id)
+            else:
+                metadata["base_classes"].append(type(base).__name__)
+        
+        # Extract the exact code for just this class
+        class_code_lines = cleaned.split('\n')
+        start_line = node.lineno - 1
+        end_line = node.end_lineno if hasattr(node, 'end_lineno') else len(class_code_lines)
+        
+        # Find the actual class definition lines
+        class_code = '\n'.join(class_code_lines[start_line:end_line])
+        
+        return class_code, ElementType.CLASS, node.name, metadata
     
     # Function/Method detection with enhanced classification
     elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -153,13 +203,20 @@ def validate_and_analyze(code: str) -> Tuple[str, ElementType, str, Optional[Dic
             else:
                 element_type = ElementType.ASYNC_FUNCTION if is_async else ElementType.FUNCTION
         
-        return cleaned, element_type, node.name, metadata
+        # Extract the exact code for just this function/method
+        func_code_lines = cleaned.split('\n')
+        start_line = node.lineno - 1
+        end_line = node.end_lineno if hasattr(node, 'end_lineno') else len(func_code_lines)
+        
+        # Find the actual function definition lines
+        func_code = '\n'.join(func_code_lines[start_line:end_line])
+        
+        return func_code, element_type, node.name, metadata
     
     else:
         raise CodeValidationError(
             f"No Python function, class, or method definition found. Found: {type(node).__name__}"
         )
-
 
 # ============ PROMPTS - With FULL, DETAILED Examples ============
 
